@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.5", features = ["derive"] }
+libc = "0.2"
+
+[lib]
+name = "localhost"
+path = "src/lib.rs"
+
+[[bin]]
+name = "localhost"
+path = "src/main.rs"
