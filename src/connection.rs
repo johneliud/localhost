@@ -45,3 +45,53 @@ pub struct ConnectionManager {
     /** Map of file descriptor to Connection. */
     connections: HashMap<c_int, Connection>,
 }
+
+impl ConnectionManager {
+    /**
+     * Creates a new ConnectionManager.
+     */
+    pub fn new() -> Self {
+        Self {
+            connections: HashMap::new(),
+        }
+    }
+
+    /**
+     * Accepts a new connection on the server socket.
+     *
+     * # Arguments
+     * * `server_socket` - The server socket to accept from
+     *
+     * Returns Ok(Connection) on success or Err(ConnectionError) on failure.
+     */
+    pub fn accept_connection(server_socket: &Socket) -> Result<Connection, ConnectionError> {
+        let mut addr_size = std::mem::size_of::<sockaddr_in>() as socklen_t;
+        let mut addr: sockaddr_in = unsafe { std::mem::zeroed() };
+
+        let client_fd = unsafe {
+            libc::accept(
+                server_socket.fd(),
+                &mut addr as *mut sockaddr_in as *mut sockaddr,
+                &mut addr_size,
+            )
+        };
+
+        if client_fd < 0 {
+            let errno = std::io::Error::last_os_error().raw_os_error();
+            if errno == Some(libc::EAGAIN) || errno == Some(libc::EWOULDBLOCK) {
+                return Err(ConnectionError::WouldBlock);
+            }
+            return Err(ConnectionError::Accept);
+        }
+
+        let socket = Socket::from_fd(client_fd)?;
+        socket.set_nonblocking()?;
+
+        Ok(Connection {
+            socket,
+            state: ConnectionState::Reading,
+            read_buffer: Vec::new(),
+            write_buffer: Vec::new(),
+            bytes_written: 0,
+        })
+    }
