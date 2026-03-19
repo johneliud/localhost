@@ -117,3 +117,42 @@ impl ConnectionManager {
         self.connections.insert(fd, connection);
         Ok(())
     }
+
+    /**
+     * Removes a connection from the manager and closes it.
+     *
+     * # Arguments
+     * * `epoll` - The epoll instance to unregister from
+     * * `fd` - The file descriptor to remove
+     *
+     * Returns Ok(()) on success or Err(ConnectionError) on failure.
+     */
+    pub fn remove_connection(
+        &mut self,
+        epoll: &mut Epoll,
+        fd: c_int,
+    ) -> Result<(), ConnectionError> {
+        epoll.remove(fd).map_err(ConnectionError::Epoll)?;
+        self.connections.remove(&fd);
+        Ok(())
+    }
+
+    /**
+     * Gets a mutable reference to a connection by file descriptor.
+     *
+     * # Arguments
+     * * `fd` - The file descriptor to look up
+     *
+     * Returns Some(&mut Connection) or None if not found.
+     */
+    pub fn get_connection(&mut self, fd: c_int) -> Option<&mut Connection> {
+        self.connections.get_mut(&fd)
+    }
+
+    /**
+     * Returns the number of active connections.
+     */
+    pub fn connection_count(&self) -> usize {
+        self.connections.len()
+    }
+}
