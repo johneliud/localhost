@@ -4,6 +4,7 @@ use std::net::Ipv4Addr;
 /**
  * Represents a TCP socket with its file descriptor.
  */
+#[derive(Debug)]
 pub struct Socket {
     fd: c_int,
 }
@@ -22,6 +23,21 @@ impl Socket {
             }
             Ok(Self { fd: sock })
         }
+    }
+
+    /**
+     * Creates a Socket from an existing file descriptor.
+     *
+     * # Arguments
+     * * `fd` - The existing file descriptor
+     *
+     * Returns Ok(Socket) on success or Err(SocketError) on failure.
+     */
+    pub fn from_fd(fd: c_int) -> Result<Self, SocketError> {
+        if fd < 0 {
+            return Err(SocketError::Create);
+        }
+        Ok(Self { fd })
     }
 
     /**
