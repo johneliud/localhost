@@ -211,3 +211,34 @@ pub enum Event {
     Write(c_int),
     HangUp(c_int),
 }
+
+/**
+ * Parses an epoll event into a Event.
+ *
+ * # Arguments
+ * * `fd` - The file descriptor from the event
+ * * `events` - The event flags
+ *
+ * Returns an Event variant.
+ */
+pub fn parse_epoll_event(fd: c_int, events: u32) -> Vec<Event> {
+    let mut result = Vec::new();
+
+    if events & EPOLLIN as u32 != 0 {
+        result.push(Event::Read(fd));
+    }
+
+    if events & EPOLLOUT as u32 != 0 {
+        result.push(Event::Write(fd));
+    }
+
+    if events & libc::EPOLLHUP as u32 != 0 {
+        result.push(Event::HangUp(fd));
+    }
+
+    if events & libc::EPOLLERR as u32 != 0 {
+        result.push(Event::HangUp(fd));
+    }
+
+    result
+}
