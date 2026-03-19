@@ -95,3 +95,25 @@ impl ConnectionManager {
             bytes_written: 0,
         })
     }
+
+    /**
+     * Adds a connection to the manager and registers it with epoll.
+     *
+     * # Arguments
+     * * `epoll` - The epoll instance to register with
+     * * `connection` - The connection to add
+     *
+     * Returns Ok(()) on success or Err(ConnectionError) on failure.
+     */
+    pub fn add_connection(
+        &mut self,
+        epoll: &mut Epoll,
+        connection: Connection,
+    ) -> Result<(), ConnectionError> {
+        let fd = connection.socket.fd();
+        epoll
+            .add(fd, EPOLLIN as u32)
+            .map_err(ConnectionError::Epoll)?;
+        self.connections.insert(fd, connection);
+        Ok(())
+    }
