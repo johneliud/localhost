@@ -115,3 +115,35 @@ fn handle_accept(
         }
     }
 }
+
+/**
+ * Handles a read event on a client socket.
+ *
+ * # Arguments
+ * * `epoll` - The epoll instance
+ * * `connection_manager` - The connection manager
+ * * `fd` - The file descriptor to read from
+ */
+fn handle_read(epoll: &mut Epoll, connection_manager: &mut ConnectionManager, fd: libc::c_int) {
+    if let Some(connection) = connection_manager.get_connection(fd) {
+        let mut buffer = [0u8; 8192];
+        let bytes_read =
+            unsafe { libc::read(fd, buffer.as_mut_ptr() as *mut libc::c_void, buffer.len()) };
+
+        if bytes_read > 0 {
+            connection
+                .read_buffer
+                .extend_from_slice(&buffer[..bytes_read as usize]);
+            println!("Read {} bytes from fd {}", bytes_read, fd);
+        } else if bytes_read == 0 {
+            println!("Client fd {} closed connection", fd);
+            let _ = connection_manager.remove_connection(epoll, fd);
+        } else {
+            let errno = std::io::Error::last_os_error().raw_os_error();
+            if errno != Some(libc::EAGAIN) && errno != Some(libc::EWOULDBLOCK) {
+                eprintln!("Read error on fd {}: {:?}", fd, errno);
+                let _ = connection_manager.remove_connection(epoll, fd);
+            }
+        }
+    }
+}
