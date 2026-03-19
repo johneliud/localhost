@@ -156,3 +156,58 @@ impl ConnectionManager {
         self.connections.len()
     }
 }
+
+impl Default for ConnectionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/**
+ * Errors that can occur when managing connections.
+ */
+#[derive(Debug, Clone, Copy)]
+pub enum ConnectionError {
+    Accept,
+    WouldBlock,
+    Epoll(EpollError),
+    Socket(SocketError),
+}
+
+impl std::fmt::Display for ConnectionError {
+    /**
+     * Formats the error for display purposes.
+     */
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionError::Accept => write!(f, "Failed to accept connection"),
+            ConnectionError::WouldBlock => write!(f, "Accept would block"),
+            ConnectionError::Epoll(e) => write!(f, "Epoll error: {}", e),
+            ConnectionError::Socket(e) => write!(f, "Socket error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ConnectionError {}
+
+impl From<SocketError> for ConnectionError {
+    fn from(err: SocketError) -> Self {
+        ConnectionError::Socket(err)
+    }
+}
+
+/**
+ * Represents an event in the event loop.
+ * 
+ * Accept: Server socket is ready for accepting.
+ * Read: Client socket is ready for reading.
+ * Write: Client socket is ready for writing.
+ * HangUp: Client socket has hung up.
+ */
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Event {
+    Accept(c_int),
+    Read(c_int),
+    Write(c_int),
+    HangUp(c_int),
+}
