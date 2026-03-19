@@ -183,3 +183,16 @@ fn handle_write(epoll: &mut Epoll, connection_manager: &mut ConnectionManager, f
         }
     }
 }
+
+/**
+ * Handles a hangup event on a socket.
+ *
+ * # Arguments
+ * * `epoll` - The epoll instance
+ * * `connection_manager` - The connection manager
+ * * `fd` - The file descriptor that hung up
+ */
+fn handle_hangup(epoll: &mut Epoll, connection_manager: &mut ConnectionManager, fd: libc::c_int) {
+    println!("Hangup on fd {}", fd);
+    let _ = connection_manager.remove_connection(epoll, fd);
+}
