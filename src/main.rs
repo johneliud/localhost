@@ -147,3 +147,39 @@ fn handle_read(epoll: &mut Epoll, connection_manager: &mut ConnectionManager, fd
         }
     }
 }
+
+/**
+ * Handles a write event on a client socket.
+ *
+ * # Arguments
+ * * `epoll` - The epoll instance
+ * * `connection_manager` - The connection manager
+ * * `fd` - The file descriptor to write to
+ */
+fn handle_write(epoll: &mut Epoll, connection_manager: &mut ConnectionManager, fd: libc::c_int) {
+    if let Some(connection) = connection_manager.get_connection(fd)
+        && !connection.write_buffer.is_empty()
+    {
+        let chunk = &connection.write_buffer[connection.bytes_written..];
+
+        let bytes_written =
+            unsafe { libc::write(fd, chunk.as_ptr() as *const libc::c_void, chunk.len()) };
+
+        if bytes_written > 0 {
+            connection.bytes_written += bytes_written as usize;
+            println!(
+                "Wrote {} bytes to fd {} (total: {}/{})",
+                bytes_written,
+                fd,
+                connection.bytes_written,
+                connection.write_buffer.len()
+            );
+        } else if bytes_written < 0 {
+            let errno = std::io::Error::last_os_error().raw_os_error();
+            if errno != Some(libc::EAGAIN) && errno != Some(libc::EWOULDBLOCK) {
+                eprintln!("Write error on fd {}: {:?}", fd, errno);
+                let _ = connection_manager.remove_connection(epoll, fd);
+            }
+        }
+    }
+}
