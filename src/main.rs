@@ -81,3 +81,37 @@ fn main() {
     println!("Server shutting down");
 }
 
+/**
+ * Handles an incoming connection on the server socket.
+ *
+ * # Arguments
+ * * `server_socket` - The server socket to accept from
+ * * `epoll` - The epoll instance
+ * * `connection_manager` - The connection manager
+ */
+fn handle_accept(
+    server_socket: &Socket,
+    epoll: &mut Epoll,
+    connection_manager: &mut ConnectionManager,
+) {
+    loop {
+        match ConnectionManager::accept_connection(server_socket) {
+            Ok(connection) => {
+                println!(
+                    "Accepted new connection with fd: {}",
+                    connection.socket.fd()
+                );
+                if let Err(e) = connection_manager.add_connection(epoll, connection) {
+                    eprintln!("Failed to add connection to epoll: {}", e);
+                }
+            }
+            Err(localhost::ConnectionError::WouldBlock) => {
+                break;
+            }
+            Err(e) => {
+                eprintln!("Failed to accept connection: {}", e);
+                break;
+            }
+        }
+    }
+}
